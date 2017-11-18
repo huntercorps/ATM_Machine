@@ -38,6 +38,7 @@ public class GUI{
         setupButtonGroup();
         setupEventListeners();
         frame.setSize(450,200);
+        frame.setLocationRelativeTo(null);
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         frame.setVisible(true);
     }
