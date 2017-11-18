@@ -4,49 +4,47 @@
 * Purpose:  Program to create a ATM Machine GUI with ability to withdraw, deposit, transfer money,
 * and see balance of account
 */
-
 import javax.swing.*;
 import java.awt.*;
 
 public class GUI{
-    /* Class Fields */
+    /* declare Class Fields */
     private JFrame frame;
+    private JPanel buttonPanel, inputPanel;
     private JTextField inputField;
     private JButton withdrawButton, depositButton, transferButton ,balanceButton;
     private JRadioButton savingsRadio, checkingRadio;
-    // Create Accounts
-    private Account savingsAccount = new Account(20.00);
-    private Account checkingAccount = new Account(20.00);
+    private Account savingsAccount, checkingAccount;
 
     /* Constructor */
-    private GUI(){
-        setupUI();
+    private GUI(double checkingBalance, double savingsBalance){
+        setupFrame();
+        createAccounts(checkingBalance,savingsBalance);
     }
 
     /* Main Method */
     public static void main(String[] args) {
-        GUI gui = new GUI();
+        GUI gui = new GUI(20.00,20.00);
     }
 
-    /* Instance Methods */
-
-    /* Method to setup UI and handle events */
-    private void setupUI(){
-        //Setup frame
+    /* Method to Setup frame and add properties/components */
+    private void setupFrame(){
         frame = new JFrame("ATM Machine");
         frame.setLayout(new FlowLayout());
         setupButtonPanel();
         setupInputPanel();
+        frame.add(buttonPanel); //must setupPanel first else null pointer
+        frame.add(inputPanel); //must be setupPanel first else null pointer
         setupButtonGroup();
-        setupEventHandlers();
+        setupEventListeners();
         frame.setSize(450,200);
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         frame.setVisible(true);
     }
 
+    /* Method to Setup buttonPanel and add components */
     private void setupButtonPanel(){
-        JPanel buttonPanel = new JPanel();
-        frame.add(buttonPanel);
+        buttonPanel = new JPanel();
         buttonPanel.setLayout(new GridLayout(0,2));
         //Add components to buttonPanel
         withdrawButton = new JButton("Withdraw");
@@ -61,122 +59,137 @@ public class GUI{
         buttonPanel.add(checkingRadio);
         savingsRadio = new JRadioButton("Savings");
         buttonPanel.add(savingsRadio);
+        //frame.add(buttonPanel);
     }
 
+    /* Method to Setup inputPanel and add components */
     private void setupInputPanel(){
-        //Setup inputPanel and add to frame
-        JPanel inputPanel = new JPanel();
-        frame.add(inputPanel);
+        inputPanel = new JPanel();
         inputPanel.setLayout(new GridLayout(0,1));
         //Add components to inputPanel
         inputField = new JTextField("",20);
         inputPanel.add(inputField);
+        //frame.add(inputPanel);
     }
-
+    /* Method to Create ButtonGroup to toggle between RadioButtons and set checking to default */
     private void setupButtonGroup(){
-        //Create Button group to toggle between RadioButtons and set checking to default
         ButtonGroup buttonGroup = new ButtonGroup();
         buttonGroup.add(checkingRadio);
         buttonGroup.add(savingsRadio);
         checkingRadio.setSelected(true); //by setting as default this avoids null pointers
     }
 
-    /* Method to ensure the value in the text field is numeric. */
-    private double getInput(){
-        double amt = 0;
-        try {
-            amt = Double.parseDouble(inputField.getText());
-            if (amt <= 0){
-                throw new NumberFormatException();
-            }
-        }
-        catch (NumberFormatException ex){
-            JOptionPane.showMessageDialog(frame,"Invalid Input");
-        }finally {
-            inputField.setText("");
-        }
-        return amt;
+    /* Method to create accounts and pass in initial balances */
+    private void createAccounts(double checkingBalance, double savingsBalance){
+        checkingAccount = new Account(checkingBalance);
+        savingsAccount = new Account(savingsBalance);
     }
 
     /* Method to determine selected RadioButton and return corresponding account */
-    private Account chooseAccount(){
-        if (checkingRadio.isSelected()){
-            return checkingAccount;
-        }
-        else {
-            return savingsAccount;
-        }
+    private Account getActiveAccount(){
+        return checkingRadio.isSelected() ? checkingAccount : savingsAccount;
     }
 
-    private void setupEventHandlers(){
-         /* -------EventHandlers---------------------------- */
+    /* Method to determine selected RadioButton and return corresponding account name string */
+    private String getAccountName(){
+        return checkingRadio.isSelected() ? "Checking" : "Savings";
+    }
 
+    /* Method for checking generic preconditions before handling events */
+    private boolean checkPreConditions(){
+        boolean pass = false;
+        try {
+            //check if value is <=0 or can be parsed as a double
+            double amt = Double.parseDouble(inputField.getText());
+            if (amt <= 0){
+                throw new NumberFormatException();
+            }
+            pass = true;
+        }
+        catch (NumberFormatException ex){
+            inputField.setText("");
+            JOptionPane.showMessageDialog(frame,"Invalid Input");
+        }
+        return pass;
+    }
+
+    /* Method to ensure the value in the text field is numeric. */
+    //can throw exception. make sure it is either caught or proceeded by checkPreConditions
+    private double getInput() throws NumberFormatException{
+        double amt = Double.parseDouble(inputField.getText());
+        inputField.setText("");
+        return amt;
+    }
+
+    /* Method to setup Listeners and pass to appropriate methods */
+    private void setupEventListeners(){
         //Event Handler for Withdraw button click
-        withdrawButton.addActionListener(e -> {actionWithdraw();});
+        withdrawButton.addActionListener(e -> handleWithdraw());
 
         //Event Handler for Deposit button click
-        depositButton.addActionListener(e -> { actionDeposit();});
+        depositButton.addActionListener(e -> handleDeposit());
 
         //Event Handler for Balance button click
-        balanceButton.addActionListener(e -> {actionBalance();});
+        balanceButton.addActionListener(e -> handleBalance());
 
         //Event Handler for Transfer button click
-        transferButton.addActionListener(e -> {actionTransfer();});
+        transferButton.addActionListener(e -> handleTransfer());
     }
 
-    private void actionWithdraw(){
-        double amt = getInput();
-        //check for pre-conditions
-        if (amt <= 0)
-            return;
-        if (amt % 20 != 0){ //check for pre-conditions
-            JOptionPane.showMessageDialog(frame,"Increments of $20.00 only");
-            return;
-        }
-        try {
-            chooseAccount().withdraw(amt);
-            JOptionPane.showMessageDialog(frame,
-                    String.format("$%.2f Withdrawn\n($%.2f Service Charge applied)",amt,chooseAccount().getServiceCharge()));
-        }catch (InsufficientFunds ex){
-            JOptionPane.showMessageDialog(frame,"Insufficient Funds");
-        }
-    }
-    private void actionDeposit(){
-        double amt = getInput();
-        chooseAccount().deposit(amt);
-        if (amt > 0){
-            JOptionPane.showMessageDialog(frame,
-                    String.format(" $%.2f Deposited in selected account",amt));
-        }
-    }
-
-    private void actionBalance(){
-        //chooseAccount().getBalance();
-        JOptionPane.showMessageDialog(frame,
-                String.format("Balance: $%.2f", chooseAccount().getBalance()));
-    }
-
-    private void actionTransfer(){
-        double amt = getInput();
-        //ignore attempt to transfer no money
-        if (amt <= 0)
-            return;
-        try {
-            if (chooseAccount() == checkingAccount){
-                checkingAccount.transferTo(amt);
-                savingsAccount.transferFrom(amt);
+    /* Method For handling withdraws */
+    private void handleWithdraw(){
+        if (checkPreConditions()) {
+            try {
+                double amt = getInput();
+                if (amt % 20 != 0){ //check if increment of 20
+                    JOptionPane.showMessageDialog(frame,"Increments of $20.00 only");
+                    return;
+                }
+                getActiveAccount().withdraw(amt);
                 JOptionPane.showMessageDialog(frame,
-                        String.format("$%.2f Transferred\nTo: Checking\nFrom: Savings",amt));
-            }
-            else {
-                savingsAccount.transferTo(amt);
-                checkingAccount.transferFrom(amt);
-                JOptionPane.showMessageDialog(frame,
-                        String.format("$%.2f Transferred\nTo: Savings\nFrom: Checking",amt));
+                        String.format("$%.2f Withdrawn from %s\n($%.2f Service Charge applied)",amt,getAccountName(), getActiveAccount().getServiceCharge()));
+            }catch (InsufficientFunds ex){
+                JOptionPane.showMessageDialog(frame,"Insufficient Funds");
             }
         }
-        catch (InsufficientFunds ex){
-            JOptionPane.showMessageDialog(frame,"Insufficient Funds");
+    }
+
+    /* Method For handling deposits */
+    private void handleDeposit(){
+        if (checkPreConditions()){
+            double amt = getInput();
+            getActiveAccount().deposit(amt);
+            JOptionPane.showMessageDialog(frame,String.format(" $%.2f Deposited in %s",amt,getAccountName()));
         }
     }
+
+    /* Method For handling balance queries */
+    private void handleBalance(){
+        JOptionPane.showMessageDialog(frame,String.format("%s Account Balance: $%.2f",getAccountName(), getActiveAccount().getBalance()));
+    }
+
+    /* Method For handling transfers */
+    private void handleTransfer(){
+        if (checkPreConditions()){
+            try {
+                double amt = getInput();
+                if (getActiveAccount() == checkingAccount){
+                    checkingAccount.transferTo(amt);
+                    savingsAccount.transferFrom(amt);
+                    JOptionPane.showMessageDialog(frame,
+                            String.format("$%.2f Transferred\nTo: Checking\nFrom: Savings",amt));
+                }
+                else {
+                    savingsAccount.transferTo(amt);
+                    checkingAccount.transferFrom(amt);
+                    JOptionPane.showMessageDialog(frame,
+                            String.format("$%.2f Transferred\nTo: Savings\nFrom: Checking",amt));
+                }
+            }
+            catch (InsufficientFunds ex){
+                JOptionPane.showMessageDialog(frame,"Insufficient Funds");
+            }
+        }
+    }
+
 }//End GUI Class
