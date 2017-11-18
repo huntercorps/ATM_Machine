@@ -7,35 +7,37 @@
 
 public class Account {
     /* Declare Fields */
-    private static int token = 0;
+    private static int svcToken = 0;//svcToken for applying service charge
     private double balance;
 
-    /* -------Constructor--------------------------------- */
+    /* Constructor*/
     public Account(double balance){
         this.balance=balance;
     }
 
-    /* -------Getter and setter methods------------------- */
+    /* Getter and setter methods */
     public double getBalance(){
         return balance;
     }
 
-    /* -------Instance Methods---------------------------- */
+    /* Instance Methods*/
 
-    /* Method to increment token and apply service charges */
+    /* Method to return and apply service charges */
     public double getServiceCharge(){
-        double svc = token > 4 ? 1.50: 0.00;
-        return svc;
+        return (svcToken > 4) ? 1.50 : 0.00;
     }
 
     /* Method to withdraw from account */
     public void withdraw(double withdrawAmt) throws InsufficientFunds {
+        svcToken++;
         withdrawAmt = withdrawAmt+getServiceCharge();//service charge added to withdrawAmt
         if (balance >= withdrawAmt){ //check for sufficient funds
-            balance = balance-withdrawAmt;
-            token++;
-        }else
+            balance -= withdrawAmt;
+        }
+        else{
+            svcToken--; //if unsuccessful don't increment the svcToken
             throw new InsufficientFunds();
+        }
     }
 
     /* Method to add deposit to account balance */
@@ -52,8 +54,10 @@ public class Account {
     public void transferFrom(double transferAmt)throws InsufficientFunds {
         if (transferAmt > balance){ //ensure sufficient funds
             throw new InsufficientFunds();
-        }else
+        }
+        else{
             balance -= transferAmt;
+        }
     }
 
 }//End Account Class
